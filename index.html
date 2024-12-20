@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Desafío de Números Racionales para Hugo</title>
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Estilos CSS -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #ece9e6, #ffffff);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            padding: 30px;
+            box-sizing: border-box;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 50px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            height: 20px;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+            transition: width 0.5s ease;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            font-size: 1.2em;
+            color: #333333;
+        }
+
+        .question {
+            font-size: 1.5em;
+            color: #333333;
+            margin-bottom: 25px;
+        }
+
+        .options {
+            list-style-type: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .options li {
+            margin: 0;
+        }
+
+        .option-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            background-color: #f5f5f5;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .option-button:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .option-button:active {
+            transform: translateY(0);
+            background-color: #d5d5d5;
+        }
+
+        .feedback {
+            margin-top: 25px;
+            font-size: 1.2em;
+            text-align: center;
+            min-height: 1.5em;
+        }
+
+        .feedback.correct {
+            color: #4caf50;
+            animation: popIn 0.5s forwards;
+        }
+
+        .feedback.incorrect {
+            color: #f44336;
+            animation: popIn 0.5s forwards;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .final-message {
+            text-align: center;
+            font-size: 2em;
+            color: #4caf50;
+            animation: celebrate 1s forwards;
+        }
+
+        @keyframes celebrate {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .celebration-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .question {
+                font-size: 1.3em;
+            }
+
+            .option-button {
+                font-size: 0.95em;
+                padding: 12px;
+            }
+
+            .final-message {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        <div class="quiz">
+            <div class="quiz-header">
+                <div class="question-number" id="question-number">Pregunta 1 de 12</div>
+            </div>
+            <div class="question" id="question">Cargando pregunta...</div>
+            <ul class="options" id="options">
+                <!-- Opciones de respuesta se generan dinámicamente -->
+            </ul>
+            <div class="feedback" id="feedback"></div>
+        </div>
+        <div class="final-message hidden" id="final-message">
+            <div class="celebration-icon">🎉</div>
+            ¡Felicidades, completaste el desafío!
+        </div>
+    </div>
+
+    <!-- KaTeX JS -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <!-- Script JavaScript -->
+    <script defer>
+        // Asegurarse de que los scripts de KaTeX se hayan cargado
+        window.addEventListener('DOMContentLoaded', () => {
+            const questions = [
+                // Operaciones
+                {
+                    type: 'operation',
+                    question: '$\\frac{1}{4} - \\left(2 - \\frac{1}{2}\\right) - \\left(-\\frac{1}{3} - \\frac{1}{2} + 2\\right)$',
+                    options: ['-$\\frac{29}{12}$', '-$\\frac{12}{29}$', '$\\frac{29}{12}$', '$\\frac{12}{29}$'],
+                    answer: '-$\\frac{29}{12}$',
+                    hint: 'Revisa la suma y resta de fracciones con denominadores diferentes.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\frac{1}{8} + \\left( \\frac{1}{4} - \\left( \\frac{1}{8} + 2 - \\frac{3}{50} \\right) - \\left(1 + \\frac{2}{3} \\right) \\right)$',
+                    options: ['-$\\frac{1007}{300}$', '-$\\frac{300}{1007}$', '$\\frac{1007}{300}$', '$\\frac{300}{1007}$'],
+                    answer: '-$\\frac{1007}{300}$',
+                    hint: 'Simplifica paso a paso las operaciones dentro de los paréntesis.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\frac{3}{10} - \\left( -\\frac{1}{2} - \\left( \\frac{1}{3} - \\frac{1}{4} \\right) - \\frac{1}{5} \\right)$',
+                    options: ['$\\frac{13}{12}$', '$\\frac{12}{13}$', '-$\\frac{13}{12}$', '-$\\frac{12}{13}$'],
+                    answer: '$\\frac{13}{12}$',
+                    hint: 'Convierte todas las fracciones al mismo denominador antes de sumar o restar.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\left(-\\frac{4}{15}\\right) \\times \\left(\\frac{12}{20}\\right) \\times \\left(-\\frac{25}{27}\\right) \\times \\left(-\\frac{18}{45}\\right) \\times \\left(-\\frac{15}{19}\\right) \\times \\left(-\\frac{22}{39}\\right) \\times \\left(\\frac{38}{40}\\right) \\times \\left(\\frac{26}{33}\\right)$',
+                    options: ['-$\\frac{8}{405}$', '-$\\frac{405}{8}$', '$\\frac{8}{405}$', '$\\frac{405}{-8}$'],
+                    answer: '-$\\frac{8}{405}$',
+                    hint: 'Multiplica las fracciones una por una y simplifica en cada paso.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\left(\\left(\\frac{1}{5}\\right)^4 \\times \\left(\\frac{1}{5}\\right)^{-3}\\right)^2 \\div \\left(\\left(\\frac{1}{5}\\right)^0 \\times \\left(\\frac{1}{5}\\right)^{-3}\\right)^{-1}$',
+                    options: ['5', '$\\frac{5}{1}$', '$\\frac{1}{5}$', '25'],
+                    answer: '5',
+                    hint: 'Aplica las propiedades de los exponentes para simplificar la expresión.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\left(\\frac{5}{6} - \\frac{2}{3}\\right) \\div \\frac{1}{2} ^{-4}$',
+                    options: ['81', '-81', '−81', '$\\frac{81}{1}$'],
+                    answer: '81',
+                    hint: 'Simplifica la fracción y luego aplica el exponente negativo.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\frac{31}{100} + \\left( \\left( \\frac{5}{2} - \\frac{1}{5} \\right) + \\frac{43}{10} \\right)^2$',
+                    options: ['$\\frac{4387}{100}$', '$\\frac{100}{4387}$', '100', '4387'],
+                    answer: '$\\frac{4387}{100}$',
+                    hint: 'Resuelve primero las operaciones dentro del paréntesis antes de elevar al cuadrado.'
+                },
+                {
+                    type: 'operation',
+                    question: '$\\frac{1}{4} \\div \\frac{1}{3} + \\left( \\frac{2}{1} \\div \\frac{1}{2} \\right)^2 - \\frac{2}{3} \\div \\frac{3}{4} + \\frac{4}{5}$',
+                    options: ['$\\frac{449}{180}$', '$\\frac{180}{449}$', '449', '180'],
+                    answer: '$\\frac{449}{180}$',
+                    hint: 'Convierte las divisiones en multiplicaciones y simplifica cada término.'
+                },
+                // Preguntas Conceptuales
+                {
+                    type: 'conceptual',
+                    question: '¿Cuál es la definición de un número racional?',
+                    options: [
+                        'Un número que puede expresarse como el cociente de dos enteros.',
+                        'Un número que no puede ser expresado como el cociente de dos enteros.',
+                        'Un número que siempre es positivo.',
+                        'Un número que tiene una representación decimal infinita sin repetición.'
+                    ],
+                    answer: 'Un número que puede expresarse como el cociente de dos enteros.',
+                    hint: 'Piensa en la relación entre fracciones y números enteros.'
+                },
+                {
+                    type: 'conceptual',
+                    question: '¿Qué significa simplificar una fracción?',
+                    options: [
+                        'Reducirla a sus términos más simples dividiendo el numerador y el denominador por su MCD.',
+                        'Multiplicar el numerador y el denominador por el mismo número.',
+                        'Invertir el numerador y el denominador.',
+                        'Sumar el numerador y el denominador.'
+                    ],
+                    answer: 'Reducirla a sus términos más simples dividiendo el numerador y el denominador por su MCD.',
+                    hint: 'Recuerda el proceso para simplificar fracciones.'
+                },
+                {
+                    type: 'conceptual',
+                    question: '¿Cuál es el resultado de sumar dos números racionales?',
+                    options: [
+                        'Siempre es un número racional.',
+                        'Siempre es un número irracional.',
+                        'Puede ser racional o irracional.',
+                        'Siempre es un número entero.'
+                    ],
+                    answer: 'Siempre es un número racional.',
+                    hint: 'Considera la definición de números racionales y sus propiedades.'
+                },
+                {
+                    type: 'conceptual',
+                    question: '¿Cómo se llama el número que está debajo de la línea en una fracción?',
+                    options: [
+                        'Denominador',
+                        'Numerador',
+                        'Coeficiente',
+                        'Exponente'
+                    ],
+                    answer: 'Denominador',
+                    hint: 'Es la parte de la fracción que indica en cuántas partes se divide el entero.'
+                }
+            ];
+
+            let currentQuestion = 0;
+            let correctAnswers = 0;
+
+            const questionNumberElement = document.getElementById('question-number');
+            const questionElement = document.getElementById('question');
+            const optionsElement = document.getElementById('options');
+            const feedbackElement = document.getElementById('feedback');
+            const progressElement = document.getElementById('progress');
+            const finalMessageElement = document.getElementById('final-message');
+
+            // Función para mezclar las opciones
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            function loadQuestion() {
+                if (currentQuestion >= questions.length) {
+                    endQuiz();
+                    return;
+                }
+
+                const q = questions[currentQuestion];
+                questionNumberElement.textContent = `Pregunta ${currentQuestion + 1} de ${questions.length}`;
+                questionElement.innerHTML = q.question;
+                optionsElement.innerHTML = '';
+                feedbackElement.textContent = '';
+                feedbackElement.className = 'feedback';
+
+                // Mezclar opciones para aleatorizar la posición de la respuesta correcta
+                const shuffledOptions = shuffle([...q.options]);
+
+                shuffledOptions.forEach(option => {
+                    const li = document.createElement('li');
+                    const button = document.createElement('button');
+                    button.className = 'option-button';
+                    
+                    // Detectar si la opción contiene una expresión matemática
+                    const isMath = isMathExpression(option, q.type);
+                    
+                    if (isMath) {
+                        // Envolver la opción en delimitadores de KaTeX
+                        button.innerHTML = option;
+                    } else {
+                        button.textContent = option;
+                    }
+
+                    button.addEventListener('click', () => selectOption(option, q));
+                    li.appendChild(button);
+                    optionsElement.appendChild(li);
+                });
+
+                // Renderizar las expresiones matemáticas en las opciones y la pregunta
+                renderMathInElement(questionElement, { 
+                    delimiters: [
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+                renderMathInElement(optionsElement, { 
+                    delimiters: [
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+
+            // Función para detectar si una opción contiene una expresión matemática
+            function isMathExpression(option, type) {
+                if (type === 'operation') {
+                    // Para preguntas de tipo operación, asumimos que todas las opciones son matemáticas
+                    return true;
+                }
+                // Para preguntas conceptuales, verificamos si la opción contiene caracteres que indican matemáticas
+                return /[$\\\(\)\/\^]/.test(option);
+            }
+
+            function selectOption(selected, question) {
+                // Deshabilitar todos los botones
+                const buttons = document.querySelectorAll('.option-button');
+                buttons.forEach(btn => btn.disabled = true);
+
+                if (selected === question.answer) {
+                    feedbackElement.textContent = '¡Correcto! Excelente trabajo.';
+                    feedbackElement.classList.add('correct');
+                    correctAnswers++;
+                } else {
+                    feedbackElement.textContent = `Incorrecto. Pista: ${question.hint}`;
+                    feedbackElement.classList.add('incorrect');
+                }
+
+                // Actualizar barra de progreso
+                const progressPercent = ((currentQuestion + 1) / questions.length) * 100;
+                progressElement.style.width = `${progressPercent}%`;
+
+                // Mover a la siguiente pregunta después de una breve pausa
+                setTimeout(() => {
+                    currentQuestion++;
+                    loadQuestion();
+                }, 2000);
+            }
+
+            function endQuiz() {
+                document.querySelector('.quiz').classList.add('hidden');
+                progressElement.style.width = '100%';
+                finalMessageElement.classList.remove('hidden');
+            }
+
+            // Iniciar el quiz
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>
